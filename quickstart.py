@@ -52,77 +52,114 @@ def get_credentials():
         print('Storing credentials to ' + credential_path)
     return credentials
 
+
+class GCal:
+
+    credentials = None
+    service = None
+    #scelgo il nome del calendario che mi interessa (NOTA: case sensitive)
+    #e cerco il suo id
+    CALENDAR = "test"   
+    calendar_id = None
+
+    def __init__(self):
+        """Shows basic usage of the Google Calendar API.
+
+        Creates a Google Calendar API service object and outputs a list of the next
+        10 events on the user's calendar.
+        """
+        self.credentials = get_credentials()
+        http = self.credentials.authorize(httplib2.Http())
+        self.service = discovery.build('calendar', 'v3', http=http)
+
+        #cerco l'id relativo al nome del calendario che mi interessa
+        print('Getting the calendar list (name and id):')
+        page_token = None
+        while True:
+            calendar_list = self.service.calendarList().list(pageToken=page_token).execute()
+            for calendar_list_entry in calendar_list['items']:
+                print ("-", calendar_list_entry['summary'], "->" , calendar_list_entry['id'])
+                if calendar_list_entry['summary'] == self.CALENDAR:
+                    self.calendar_id = calendar_list_entry['id']
+            page_token = calendar_list.get('nextPageToken')
+            if not page_token:
+                break
+
+        #se non trovo il calendario che mi interessa, seleziono
+        #l'id del calendario principale
+        if self.calendar_id == None:
+            self.calendar_id = "primary" #
+        print ("Using id:", self.calendar_id)
+
+        now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+        print('Getting the upcoming 10 events')
+        eventsResult = self.service.events().list(
+            calendarId=self.calendar_id, timeMin=now, maxResults=10, singleEvents=True,
+            orderBy='startTime').execute()
+        events = eventsResult.get('items', [])
+
+        if not events:
+            print('No upcoming events found.')
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            print("-", start, event['summary'])
+
+    def add_event(self, start="2017-05-08T09:00:00+02:00", end="2017-05-08T09:30:00+02:00"):
+        #crea l'evento da aggiungere al calendario.
+        #fare attenzione a dateTime, che deve essere utc.
+        #nota che l'offset e' +01:00, mentre quando si e' in DST e' +02:00
+        event = {
+        'summary': 'Test Event',
+        'location': 'Test location',
+        'description': 'Test description',
+        'start': {
+        'dateTime': start,
+        'timeZone': 'Europe/Rome',
+        },
+        'end': {
+        'dateTime': end,
+        'timeZone': 'Europe/Rome',
+        },
+        'reminders': {
+        'useDefault': False,
+        'overrides': [
+        {'method': 'popup', 'minutes': 10},
+        ],
+        },
+        }
+
+        event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
+        print ('Event created: %s' % (event.get('htmlLink')))
+
+    def event_on_day(self, day):
+        """ Check if in a given day (int) there is already an event """
+        now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+        print('Getting the upcoming 10 events')
+        eventsResult = self.service.events().list(
+            calendarId=self.calendar_id, timeMin=now, maxResults=10, singleEvents=True,
+            orderBy='startTime').execute()
+        events = eventsResult.get('items', [])
+        
+        if not events:
+            print('No upcoming events found.')
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            print("-", start, event['summary'])
+
+            #convert from google api format
+            import dateutil.parser #HARDCODED
+            dt = dateutil.parser.parse(start)
+            if dt.day == day:
+                print("Event found")
+                return True
+        return False
+
+
+
 def main():
-    """Shows basic usage of the Google Calendar API.
-
-    Creates a Google Calendar API service object and outputs a list of the next
-    10 events on the user's calendar.
-    """
-    credentials = get_credentials()
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('calendar', 'v3', http=http)
-
-    CALENDAR = "test"   #scelgo il nome del calendario che mi interessa. NOTA: case sensitive
-    calendar_id = None  #
-    print('Getting the calendar list')
-    page_token = None
-    while True:
-        calendar_list = service.calendarList().list(pageToken=page_token).execute()
-        for calendar_list_entry in calendar_list['items']:
-            print (calendar_list_entry['summary'], ":" , calendar_list_entry['id'])
-            if calendar_list_entry['summary'] == CALENDAR:
-                calendar_id = calendar_list_entry['id']
-        page_token = calendar_list.get('nextPageToken')
-        if not page_token:
-            break
-
-    if calendar_id == None:
-        calendar_id = "primary" #l'id del calendario principale
-    print (calendar_id)
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-    print('Getting the upcoming 10 events')
-    eventsResult = service.events().list(
-        calendarId=calendar_id, timeMin=now, maxResults=10, singleEvents=True,
-        orderBy='startTime').execute()
-    events = eventsResult.get('items', [])
-
-    if not events:
-        print('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
-
-    #crea l'evento da aggiungere al calendario.
-    #fare attenzione a dateTime, che deve essere utc.
-    #nota che l'offset e' +01:00, mentre quando si e' in DST e' +02:00
-    event = {
-    'summary': 'Test Event',
-    'location': 'Test location',
-    'description': 'Test description',
-    'start': {
-    'dateTime': '2017-05-08T09:00:00+02:00',
-    'timeZone': 'Europe/Rome',
-    },
-    'end': {
-    'dateTime': '2017-05-08T09:30:00+02:00',
-    'timeZone': 'Europe/Rome',
-    },
-    'reminders': {
-    'useDefault': False,
-    'overrides': [
-    {'method': 'popup', 'minutes': 10},
-    ],
-    },
-    }
-
-    event = service.events().insert(calendarId=calendar_id, body=event).execute()
-    print ('Event created: %s' % (event.get('htmlLink')))
-
-    # created_event = service.events().quickAdd(
-    # calendarId='calendar_id',
-    # text='Appointment at Somewhere on May 8th 10am-10:25am').execute()
-
-    # print (created_event['id'])
+    #TOFIX when class is modified
+    c = GCal()
+    c.add_event()
 
 if __name__ == '__main__':
     main()

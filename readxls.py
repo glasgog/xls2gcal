@@ -116,3 +116,28 @@ for d in workday:
 		print " utc and local are the same date: " + str(local_dt==utc_dt)
 
 		print
+
+
+import quickstart
+
+#convert to google api format
+start = local_dt.isoformat('T')
+end = (local_dt+datetime.timedelta(hours=9)).isoformat('T')
+print "start: " + start
+print "end: " + end
+
+#convert from google api format
+import dateutil.parser
+dt = dateutil.parser.parse(start)
+# print (dt.strftime('%d')) #get the day as str
+# print dt.day #get the day as int
+# print(type(dt.strftime('%d')))
+# print(type(dt.day))
+
+print
+c = quickstart.GCal()
+if not c.event_on_day(dt.day):
+	print "Add the new event"
+	c.add_event(start, end)
+else:
+	print "Event already exists. Nothing done"
