@@ -132,12 +132,12 @@ class GCal:
         print ('Event created: %s' % (event.get('htmlLink')))
 
     def event_on_day(self, day):
-        """ Check if in a given day (int) there is already an event """
+        """ Check if in a given day (int) there is already an event"""
         now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
         print('Getting the upcoming 10 events')
         eventsResult = self.service.events().list(
             calendarId=self.calendar_id, timeMin=now, maxResults=10, singleEvents=True,
-            orderBy='startTime').execute()
+            orderBy='startTime').execute() #NOTE: only the first 10 events are getted
         events = eventsResult.get('items', [])
         
         if not events:
@@ -149,10 +149,38 @@ class GCal:
             #convert from google api format
             import dateutil.parser #HARDCODED
             dt = dateutil.parser.parse(start)
-            if dt.day == day:
+            if dt.day == day: #TOFIX: i'm checking day only, not month ecc..
                 print("Event found")
                 return True
         return False
+
+    def update_event(self, day, new_start="2017-05-08T09:00:00+02:00", new_end="2017-05-08T09:30:00+02:00"):
+        now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+        print('Getting the upcoming 10 events')
+        eventsResult = self.service.events().list(
+            calendarId=self.calendar_id, timeMin=now, maxResults=10, singleEvents=True,
+            orderBy='startTime').execute() #NOTE: only the first 10 events are getted
+        events = eventsResult.get('items', [])
+        
+        if not events:
+            print('No upcoming events found.')
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            print("-", start, event['summary'])
+
+            #convert from google api format
+            import dateutil.parser #HARDCODED
+            dt = dateutil.parser.parse(start)
+            if dt.day == day: #TOFIX: i'm checking day only, not month ecc..
+                print("Event found")
+                event["start"] = {'dateTime': new_start, 'timeZone': 'Europe/Rome',}
+                event["end"] = {'dateTime': new_end, 'timeZone': 'Europe/Rome',}
+                updated_event = self.service.events().update(calendarId=self.calendar_id, eventId=event['id'], body=event).execute()
+                # Print the updated date.
+                print(updated_event['updated'])
+                return True
+        return False
+
 
 
 

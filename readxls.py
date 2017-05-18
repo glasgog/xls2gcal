@@ -117,6 +117,13 @@ for d in workday:
 
 		print
 
+"""
+Test section beginning:
+	get the last event and add it to the calendar (end 9 hours after the start).
+	if there is already an event on the same day (note: day, not date),
+	this one is updated modifying the hour (in the test is shifted of 1 hour).
+	No work day is still missing.
+"""
 
 import quickstart
 
@@ -136,8 +143,9 @@ dt = dateutil.parser.parse(start)
 
 print
 c = quickstart.GCal()
-if not c.event_on_day(dt.day):
+if not c.event_on_day(dt.day): #TOFIX: i'm checking day only, not month ecc..
 	print "Add the new event"
 	c.add_event(start, end)
 else:
-	print "Event already exists. Nothing done"
+	#print "Event already exists. Nothing done"
+	c.update_event(dt.day,(local_dt+datetime.timedelta(hours=1)).isoformat('T'), (local_dt+datetime.timedelta(hours=10)).isoformat('T'))
