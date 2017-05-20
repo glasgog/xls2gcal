@@ -97,12 +97,12 @@ for d in workday:
 		c = quickstart.GCal()
 		if not c.event_on_date(local_dt):
 			print "Add the new event"
-			c.add_event(local_dt, local_dt+timedelta(hours=9)) #NOTA: manca ancora il nome
+			c.add_event(shift, local_dt, local_dt+timedelta(hours=9)) #NOTA: manca ancora il nome
 		else:
 			#dovrei restituire l'id dell'evento per evitare di effettuare nuovamente la ricerca
 			print "Updating event"
 			#c.update_event(local_dt,(local_dt+timedelta(hours=1)), (local_dt+timedelta(hours=10)))
-			c.update_event(local_dt,local_dt, local_dt+timedelta(hours=9))
+			c.update_event(local_dt, shift, local_dt, local_dt+timedelta(hours=9))
 	else:
 		from datetime import datetime, date, time
 		dt = datetime.combine(date(year,month,day),time(8,0)) #l'ora e' fittizia

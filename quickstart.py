@@ -104,7 +104,7 @@ class GCal:
             start = event['start'].get('dateTime', event['start'].get('date'))
             print("-", start, event['summary'])
 
-    def add_event(self, start="2020-05-08T09:00:00+02:00", end="2020-05-08T09:30:00+02:00"):
+    def add_event(self, name="Work", start="2020-05-08T09:00:00+02:00", end="2020-05-08T09:30:00+02:00"):
         """
         Crea l'evento da aggiungere al calendario.
 		E' preferibile che gli argomenti siano di tipo datatime:
@@ -117,7 +117,7 @@ class GCal:
 	        end=end.isoformat('T')
 
         event = {
-        'summary': 'Test Event',
+        'summary': name,
         'location': 'Test location',
         'description': 'Test description',
         'start': {
@@ -162,7 +162,7 @@ class GCal:
                 return True
         return False        
 
-    def update_event(self, date, new_start="2017-05-08T09:00:00+02:00", new_end="2017-05-08T09:30:00+02:00"):
+    def update_event(self, date, new_name="Work", new_start="2017-05-08T09:00:00+02:00", new_end="2017-05-08T09:30:00+02:00"):
     	#se avessi a disposizione l'id potrei evitare di rieffettuare la ricerca
     	if type(new_start) == datetime and type(new_end) == datetime: #le formatto correttamente se non lo sono gia'
 	        new_start=new_start.isoformat('T')
@@ -186,6 +186,7 @@ class GCal:
             dt = dateutil.parser.parse(start)
             if dt.date() == date.date():
                 print("Event found")
+                event["summary"] = new_name
                 event["start"] = {'dateTime': new_start, 'timeZone': 'Europe/Rome',}
                 event["end"] = {'dateTime': new_end, 'timeZone': 'Europe/Rome',}
                 updated_event = self.service.events().update(calendarId=self.calendar_id, eventId=event['id'], body=event).execute()
