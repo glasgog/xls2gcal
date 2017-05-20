@@ -1,25 +1,3 @@
-
-
-# import pandas
-# df = pandas.read_excel('esempio.xlsx')
-# #print the column names
-# print df.columns
-# #get the values for a given column
-# values = df['Ilario'].values
-# print values
-
-# import xlrd
-
-# sh = xlrd.open_workbook('esempio.xlsx').sheet_by_index(0)
-# t = open("text.txt", 'w')
-# try:
-#     for rownum in range(sh.nrows):
-#         t.write(str(sh.cell(rownum, 0).value)+ " = " +str(sh.cell(rownum, 1).value)+"\n")
-# finally:
-#     t.close()
-
-#-----------------------------------
-
 # from xlrd import open_workbook
 # wb = open_workbook('esempio.xlsx')
 # for s in wb.sheets():
@@ -42,7 +20,7 @@
 
 SHEET_INDEX = 0
 FIRST_ROW_INDEX = 1
-WORKER_INDEX = 1
+WORKER_INDEX = 1 #column where the worker is
 
 def month_int_from_str(month):
 	year = {"gen": 1, \
@@ -88,7 +66,7 @@ for d in workday:
 	day = int(day_month_lst[0])
 	month = month_int_from_str(day_month_lst[1])
 	year = 2017 #HARDCODED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	shift = shift_str_from_char(workday[d])
+	shift = shift_str_from_char(workday[d]) #remember: d is the key
 
 	if shift:
 		#get the full date, with the shift start time
@@ -103,19 +81,43 @@ for d in workday:
 		print "Datatime: " + str(dt)
 
 		#I need UTC date
-		import pytz, datetime
+		import pytz
 		local = pytz.timezone("Europe/Rome")
-		naive = dt
-		local_dt = local.localize(naive, is_dst=None)
+		local_dt = local.localize(dt, is_dst=None)
 		print "Local datatime: " + str(local_dt)
-		utc_dt = local_dt.astimezone(pytz.utc)
-		print "UTC datatime: " + str(utc_dt)
-		#format needed for google api: 2017-05-08T09:00:00+02:00
-		utc_string = local_dt.isoformat('T')
-		print utc_string
-		print " utc and local are the same date: " + str(local_dt==utc_dt)
+		# utc_dt = local_dt.astimezone(pytz.utc) # NOTE: local_dt==utc_dt
+		# format needed for google api: 2017-05-08T09:00:00+02:00 # utc_string = local_dt.isoformat('T')
 
 		print
+
+		""" """
+		import quickstart
+		from datetime import timedelta
+
+		c = quickstart.GCal()
+		if not c.event_on_date(local_dt):
+			print "Add the new event"
+			c.add_event(local_dt, local_dt+timedelta(hours=9)) #NOTA: manca ancora il nome
+		else:
+			#dovrei restituire l'id dell'evento per evitare di effettuare nuovamente la ricerca
+			print "Updating event"
+			#c.update_event(local_dt,(local_dt+timedelta(hours=1)), (local_dt+timedelta(hours=10)))
+			c.update_event(local_dt,local_dt, local_dt+timedelta(hours=9))
+	else:
+		from datetime import datetime, date, time
+		dt = datetime.combine(date(year,month,day),time(8,0)) #l'ora e' fittizia
+		print "Datatime: " + str(dt)
+		#I need UTC date
+		import pytz
+		local = pytz.timezone("Europe/Rome")
+		local_dt = local.localize(dt, is_dst=None)
+		print "Local datatime: " + str(local_dt)
+
+		import quickstart
+		c = quickstart.GCal()
+		c.delete_event(local_dt)
+
+
 
 """
 Test section beginning:
@@ -125,27 +127,33 @@ Test section beginning:
 	No work day is still missing.
 """
 
-import quickstart
+def localize(date_time):
+	import pytz
+	local = pytz.timezone("Europe/Rome")
+	local_dt = local.localize(date_time, is_dst=None)
+	return local_dt
 
-#convert to google api format
-start = local_dt.isoformat('T')
-end = (local_dt+datetime.timedelta(hours=9)).isoformat('T')
-print "start: " + start
-print "end: " + end
+def gdate(date_time):
+	#convert to google api format
+	local_dt = localize(date_time)
+	return local_dt.isoformat('T')
 
-#convert from google api format
-import dateutil.parser
-dt = dateutil.parser.parse(start)
-# print (dt.strftime('%d')) #get the day as str
-# print dt.day #get the day as int
-# print(type(dt.strftime('%d')))
-# print(type(dt.day))
+def un_gdate(gdate):
+	#convert from google api format
+	import dateutil.parser
+	dt = dateutil.parser.parse(gdate)
+	return dt
 
-print
-c = quickstart.GCal()
-if not c.event_on_day(dt.day): #TOFIX: i'm checking day only, not month ecc..
-	print "Add the new event"
-	c.add_event(start, end)
-else:
-	#print "Event already exists. Nothing done"
-	c.update_event(dt.day,(local_dt+datetime.timedelta(hours=1)).isoformat('T'), (local_dt+datetime.timedelta(hours=10)).isoformat('T'))
+
+# import quickstart
+# from datetime import timedelta
+
+# print
+# c = quickstart.GCal()
+# if not c.event_on_date(local_dt):
+# 	print "Add the new event"
+# 	c.add_event(local_dt, local_dt+datetime.timedelta(hours=9))
+# else:
+# 	#dovrei restituire l'id dell'evento per evitare di effettuare nuovamente la ricerca
+# 	print "Updating event"
+# 	c.update_event(local_dt,(local_dt+datetime.timedelta(hours=1)), (local_dt+datetime.timedelta(hours=10)))
