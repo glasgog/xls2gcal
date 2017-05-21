@@ -5,12 +5,14 @@ import quickstart
 
 SHEET_INDEX = 0
 FIRST_ROW_INDEX = 1
+DAY_MONTH_INDEX = 0  # column where day and month are
 WORKER_INDEX = 1  # column where the worker is
+YEAR_INDEX = 3  # column where the year is
 CALENDAR = "test"
 
 
-def month_int_from_str(month):
-    year = {"gen": 1,
+def month_num(month_str):
+    month = {"gen": 1,
             "feb": 2,
             "mar": 3,
             "apr": 4,
@@ -22,52 +24,60 @@ def month_int_from_str(month):
             "ott": 10,
             "nov": 11,
             "dic": 12}
-    return year[month]
+    return month[month_str]
 
 
-def shift_str_from_char(shift):
-    work = {"G": "Giorno",
+def shift_name(shift):
+    name = {"G": "Giorno",
             "M": "Mattina",
             "P": "Pomeriggio",
             "N": "Notte"}
-    if shift not in work:
+    if shift not in name:
         return
-    return work[shift]
+    return name[shift]
+
+
+def shift_time(shift):
+    hour = {"G": time(9, 0),
+            "M": time(6, 0),
+            "P": time(14, 0),
+            "N": time(22, 0)}
+    return hour[shift]
 
 wb = open_workbook('esempio.xlsx')
 sheet = wb.sheet_by_index(SHEET_INDEX)  # HARDCODED
 
-# fill a dictionary workday = {"1-gen": "G", ..., "date": "shift", ...}
-# i can access a shift with workday["1-gen"]
+# fill a dictionary
+# workday = {"1-gen-2017": "G",
+#            ...,
+#            "date": "shift", ...}
+# i can access a shift with workday["1-gen-2017"]
 workday = {}
-for row in xrange(FIRST_ROW_INDEX, sheet.nrows):  # HARDCODED
-    workday[sheet.cell(row, SHEET_INDEX).value] = sheet.cell(
-        row, WORKER_INDEX).value
-# print " 1-gen is " + workday["1-gen"]
+last_year = None
+for row in xrange(FIRST_ROW_INDEX, sheet.nrows):
+    # year is in joined cells, so i save the last one
+    if sheet.cell(row, 3).value:
+        last_year = int(sheet.cell(row, 3).value)
+    # join the first part with the year: 8-mag-2017
+    key = str(sheet.cell(row, DAY_MONTH_INDEX).value) + "-" + str(last_year)
+    # print " >>> " + key
+    workday[key] = sheet.cell(row, WORKER_INDEX).value
+# print " 1-gen-2017 is " + workday["1-gen-2017"]
 
 c = quickstart.GCal(CALENDAR)
 
 for d in workday:
-
-    # print str(str(d).split("-")) + " " + str(workday[d])
-
-    # d is of the kind 8-mag. I want 2017-05-08
-    day_month_lst = d.split("-")
-    day = int(day_month_lst[0])
-    month = month_int_from_str(day_month_lst[1])
-    year = 2017  # <----------------------------------------------------------------HARDCODED!
-    shift = shift_str_from_char(workday[d])  # remember: d is the key
+    # d is of the kind 8-mag-2017. I want 2017-05-08
+    date_lst = d.split("-")
+    day = int(date_lst[0])
+    month = month_num(date_lst[1])
+    year = int(date_lst[2])
+    shift = shift_name(workday[d])  # remember: d is the key
 
     if shift:
         # get the full date, with the shift start time
         print str(day) + "/" + str(month) + "/" + str(year) + ": " + str(shift)
-
-        shift_time = {"G": time(9, 0),
-                      "M": time(6, 0),
-                      "P": time(14, 0),
-                      "N": time(22, 0)}
-        dt = datetime.combine(date(year, month, day), shift_time[workday[d]])
-        # print "Datatime: " + str(dt)
+        dt = datetime.combine(date(year, month, day), shift_time(workday[d]))
         # I need UTC date
         local = pytz.timezone("Europe/Rome")
         local_dt = local.localize(dt, is_dst=None)
@@ -80,7 +90,7 @@ for d in workday:
             c.add_event(shift, local_dt, local_dt + timedelta(hours=9))
         else:
             # dovrei restituire l'id dell'evento per evitare di effettuare nuovamente la ricerca
-            #c.update_event(local_dt,(local_dt+timedelta(hours=1)), (local_dt+timedelta(hours=10)))
+            # c.update_event(local_dt,(local_dt+timedelta(hours=1)), (local_dt+timedelta(hours=10)))
             c.update_event(local_dt, shift, local_dt,
                            local_dt + timedelta(hours=9))
         print
@@ -88,7 +98,6 @@ for d in workday:
         print str(day) + "/" + str(month) + "/" + str(year) + ": Riposo"
         dt = datetime.combine(date(year, month, day),
                               time(8, 0))  # l'ora e' fittizia
-        # print "Datatime: " + str(dt)
         # I need UTC date
         local = pytz.timezone("Europe/Rome")
         local_dt = local.localize(dt, is_dst=None)
