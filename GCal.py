@@ -23,7 +23,7 @@ except ImportError:
 # NOTE: scope modified because i want to write too
 SCOPES = 'https://www.googleapis.com/auth/calendar'
 CLIENT_SECRET_FILE = 'client_secret.json'
-APPLICATION_NAME = 'Google Calendar API Python Quickstart'
+APPLICATION_NAME = 'xls2gcal'
 
 
 def get_credentials():
