@@ -126,8 +126,8 @@ class GCal:
 
         event = {
             'summary': name,
-            'location': 'Test location',
-            'description': 'Test description',
+            # 'location': 'Test location',
+            # 'description': 'Test description',
             'start': {
                 'dateTime': start,
                 'timeZone': 'Europe/Rome',

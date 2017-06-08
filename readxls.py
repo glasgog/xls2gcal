@@ -1,18 +1,26 @@
-from xlrd import open_workbook  # excel reading
+from xlrd import open_workbook, xldate_as_tuple, XL_CELL_DATE  # excel reading
 from datetime import datetime, date, time, timedelta
 import pytz  # timezone definitions
 import GCal
 
-# excel structure
+# excel structure. Note that row_num is excel_rownum-1
+FILE_NAME = "turni.xlsx"
 SHEET_INDEX = 0
-FIRST_ROW_INDEX = 1
-DAY_MONTH_INDEX = 0  # column where day and month are
-WORKER_INDEX = 1  # column where the worker is
-YEAR_INDEX = 3  # column where the year is
+FIRST_ROW_INDEX = 161
+DATE_INDEX = 2  # column where date is
+WORKER_INDEX = 29  # column where the worker is
 
 # shift and calendar
 SHIFT_DURATION = 9
 CALENDAR = "test"
+
+# year in the used excel file is wrong! excel_year=real_year-1
+# use 0 if no error in your file
+HARDCODE_YEAR_ERROR = -1
+
+DEBUG = False
+# number of events to handle when post-debugging phase. Use 0 or False for no limit
+DEBUG_LIMIT = 10
 
 
 def month_num(month_str):
@@ -50,42 +58,55 @@ def shift_time(shift):
 
 
 def main():
-    wb = open_workbook('esempio.xlsx')
+    wb = open_workbook(FILE_NAME)
     sheet = wb.sheet_by_index(SHEET_INDEX)  # HARDCODED
 
-    # fill a dictionary
-    # workday = {"1-gen-2017": "G",
+    # fill a dictionary. NOTE: key can be a datetime, str is not needed
+    # workday = {datetime: "G",
     #            ...,
-    #            "date": "shift", ...}
-    # i can access a shift with workday["1-gen-2017"]
+    #            dt: "shift", ...}
+    # i can access a shift with workday[dt]
     workday = {}
-    last_year = None
-    for row in xrange(FIRST_ROW_INDEX, sheet.nrows):
-        # year is in joined cells, so i save the last one
-        if sheet.cell(row, 3).value:
-            last_year = int(sheet.cell(row, 3).value)
-        # join the first part with the year: 8-mag-2017
-        key = str(sheet.cell(row, DAY_MONTH_INDEX).value) + \
-            "-" + str(last_year)
-        # print " >>> " + key
-        workday[key] = sheet.cell(row, WORKER_INDEX).value
-    # print " 1-gen-2017 is " + workday["1-gen-2017"]
+
+    last_row_index = sheet.nrows
+    if DEBUG_LIMIT:
+    	last_row_index = FIRST_ROW_INDEX + DEBUG_LIMIT  # sheet.nrows
+    for row in xrange(FIRST_ROW_INDEX, last_row_index):
+    	# check if is a date
+        if sheet.cell_type(row, DATE_INDEX) == XL_CELL_DATE:
+	        # date in excel are stored as floating point numbers
+	        date_raw = sheet.cell_value(row, DATE_INDEX)
+	        # print date_raw
+	        # convert it in tuple
+	        date_tuple = xldate_as_tuple(date_raw, wb.datemode)
+	        dt = datetime(*date_tuple)
+	        # fix an error in the year of excel file
+	        dt = dt.replace(year=dt.year-HARDCODE_YEAR_ERROR)
+	        # print dt
+	        # key = str(dt)
+	        # print " >>> " + key
+	        workday[dt] = sheet.cell(row, WORKER_INDEX).value
+	        print str(dt) + " is " + str(workday[dt])
+
+    # return
 
     c = GCal.GCal(CALENDAR)
 
     for d in workday:
         # d is of the kind 8-mag-2017. I want 2017-05-08
-        date_lst = d.split("-")
-        day = int(date_lst[0])
-        month = month_num(date_lst[1])
-        year = int(date_lst[2])
+        # date_lst = d.split("-")
+        # day = int(date_lst[0])
+        # month = month_num(date_lst[1])
+        # year = int(date_lst[2])
         shift = shift_name(workday[d])  # remember: d is the key
 
         if shift:
             # get the full date, with the shift start time
-            print str(day) + "/" + str(month) + "/" + str(year) + ": " + str(shift)
-            dt = datetime.combine(date(year, month, day),
-                                  shift_time(workday[d]))
+            # print str(day) + "/" + str(month) + "/" + str(year) + ": " + str(shift)
+            # dt = datetime.combine(date(year, month, day),
+            #                       shift_time(workday[d]))
+            dt = datetime.combine(d, shift_time(workday[d]))
+            print dt.strftime("%d/%m/%Y %H:%M")
             # I need UTC date
             local = pytz.timezone("Europe/Rome")
             local_dt = local.localize(dt, is_dst=None)
@@ -93,6 +114,8 @@ def main():
             # utc_dt = local_dt.astimezone(pytz.utc) # NOTE: local_dt==utc_dt
             # format needed for google api: 2017-05-08T09:00:00+02:00 # utc_string
             # = local_dt.isoformat('T')
+            if DEBUG:
+            	continue
 
             if not c.event_on_date(local_dt):
                 # event end SHIFT_DURATION hours after the start
@@ -106,13 +129,14 @@ def main():
                                local_dt + timedelta(hours=SHIFT_DURATION))
             print
         else:
-            print str(day) + "/" + str(month) + "/" + str(year) + ": Riposo"
-            dt = datetime.combine(date(year, month, day),
-                                  time(8, 0))  # l'ora e' fittizia
+            dt = datetime.combine(d, time(8, 0))
+            print dt.strftime("%d/%m/%Y %H:%M") + ": Riposo"
             # I need UTC date
             local = pytz.timezone("Europe/Rome")
             local_dt = local.localize(dt, is_dst=None)
             print " Local datatime: " + str(local_dt)
+            if DEBUG:
+            	continue
 
             c.delete_event(local_dt)
             print
