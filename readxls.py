@@ -62,8 +62,8 @@ def main():
     last_year = None
     for row in xrange(FIRST_ROW_INDEX, sheet.nrows):
         # year is in joined cells, so i save the last one
-        if sheet.cell(row, 3).value:
-            last_year = int(sheet.cell(row, 3).value)
+        if sheet.cell(row, YEAR_INDEX).value:
+            last_year = int(sheet.cell(row, YEAR_INDEX).value)
         # join the first part with the year: 8-mag-2017
         key = str(sheet.cell(row, DAY_MONTH_INDEX).value) + \
             "-" + str(last_year)
