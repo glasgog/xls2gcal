@@ -1,3 +1,21 @@
+"""
+This file is part of xls2gcal
+xls2gcal get a work shift from an excel file and add it to a given google calendar
+Copyright (C) 2017  Ilario Digiacomo
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 from __future__ import print_function
 import httplib2
@@ -126,8 +144,8 @@ class GCal:
 
         event = {
             'summary': name,
-            # 'location': 'Test location',
-            # 'description': 'Test description',
+            'location': '',
+            'description': '',
             'start': {
                 'dateTime': start,
                 'timeZone': 'Europe/Rome',
