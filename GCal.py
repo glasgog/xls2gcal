@@ -78,7 +78,7 @@ class GCal:
     # da rimuovere quando verra' implementata la possibilita' di creare un
     # nuovo calendario
     CALENDAR = "test"
-    MAX_RESULTS = 10  # 365
+    MAX_RESULTS = 30  # 365
 
     credentials = None
     service = None
