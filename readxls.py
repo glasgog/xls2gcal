@@ -24,7 +24,7 @@ import GCal
 
 # excel structure. NOTE: row_num is excel_rownum-1
 FILE_NAME = "turni.xlsx"
-XLS_SHEET = 0
+XLS_SHEET = 1
 # some dates are bugged in the used excel file,
 # so i hack starting from the 1st useful row for that worker.
 XLS_FIRST_ROW = 119
@@ -144,6 +144,7 @@ def main():
         return
 
     c = GCal.GCal(CALENDAR)
+    # c.print_events()
 
     for d in workday:
         if d.date() < datetime.today().date():
@@ -165,16 +166,12 @@ def main():
             if DEBUG_OFFLINE:
                 continue
 
-            if not c.event_on_date(local_dt):
-                # event end SHIFT_DURATION hours after the start
+            # try to update. if fail, add a new event
+            updated = c.update_event(local_dt, shift, local_dt,
+                                  local_dt + timedelta(hours=SHIFT_DURATION))
+            if not updated:
                 c.add_event(shift, local_dt, local_dt +
                             timedelta(hours=SHIFT_DURATION))
-            else:
-                # if there is already an event on the same day it is updated
-                # dovrei restituire l'id dell'evento per evitare di effettuare
-                # nuovamente la ricerca
-                c.update_event(local_dt, shift, local_dt,
-                               local_dt + timedelta(hours=SHIFT_DURATION))
             print
         else:
             dt = datetime.combine(d, time(0, 0))
