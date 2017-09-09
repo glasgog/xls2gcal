@@ -1,3 +1,5 @@
 *.pyc
 client_secret.json
 turni.xlsx
+turni.ods
+turni.xlsx.bak

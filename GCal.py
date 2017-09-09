@@ -78,13 +78,14 @@ class GCal:
     # da rimuovere quando verra' implementata la possibilita' di creare un
     # nuovo calendario
     CALENDAR = "test"
-    MAX_RESULTS = 30  # 365
+    MAX_RESULTS = 60  # 365
 
     credentials = None
     service = None
     calendar_id = None
+    events_to_read = None
 
-    def __init__(self, calendar_name=CALENDAR):
+    def __init__(self, calendar_name=CALENDAR, events_to_read=MAX_RESULTS):
         """Shows basic usage of the Google Calendar API.
 
         Creates a Google Calendar API service object and outputs a list of the next
@@ -114,19 +115,21 @@ class GCal:
         if self.calendar_id == None:
             self.calendar_id = "primary"
         print("Use id", self.calendar_id)
+        # imposto il numero di eventi da leggere. Nota che giorni=N implica eventi<=N
+        # in un intervallo di N giorni non possono esserci piu' di N eventi.
+        # al piu' verranno letti eventi oltre il giorno di interesse
+        self.events_to_read = events_to_read
         print()
-
 
     def get_events(self):
         """ Get event list """
         now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        print('Getting the upcoming', self.MAX_RESULTS, 'events...')
+        print('Getting the upcoming', self.events_to_read, 'events...')
         eventsResult = self.service.events().list(
-            calendarId=self.calendar_id, timeMin=now, maxResults=self.MAX_RESULTS, singleEvents=True,
+            calendarId=self.calendar_id, timeMin=now, maxResults=self.events_to_read, singleEvents=True,
             orderBy='startTime').execute()
         events = eventsResult.get('items', [])
         return events
-
 
     def event_on_date(self, date, get_event=False):
         """
@@ -189,7 +192,6 @@ class GCal:
         # print('Event created: %s' % (event.get('htmlLink')))
         print('  Event created:', start, event['summary'])
 
-
     def update_event(self, date, new_name="Work", new_start="2017-05-08T09:00:00+02:00", new_end="2017-05-08T09:30:00+02:00"):
         """
         If there is already an event on a given date, it is updated.
@@ -215,7 +217,6 @@ class GCal:
             return True
         return False
 
-
     def delete_event(self, date):
         event = self.event_on_date(date, get_event=True)
         if event:
@@ -224,7 +225,6 @@ class GCal:
             print("  Event deleted.")
             return True
         return False
-
 
     def print_events(self):
         events = self.get_events()

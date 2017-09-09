@@ -29,7 +29,7 @@ XLS_SHEET = 1
 # so i hack starting from the 1st useful row for that worker.
 XLS_FIRST_ROW = 119
 XLS_DATE = "C"  # column where date is
-XLS_WORKER = "AD"  # column where the worker is
+XLS_WORKER = "AC"  # column where the worker is
 # year in the used excel file is wrong! excel_year=real_year-1
 # use 0 if no error in your file
 HARDCODE_YEAR_ERROR = -1
@@ -38,7 +38,7 @@ HARDCODE_YEAR_ERROR = -1
 SHIFT_DURATION = 9
 CALENDAR = "test"
 # number of days to handle when post-debugging phase. Use 0 for no limit
-DAYS_TO_READ = 30
+DAYS_TO_READ = 60
 
 DEBUG_EXCEL_ONLY = False
 DEBUG_OFFLINE = False
@@ -143,7 +143,7 @@ def main():
     if DEBUG_EXCEL_ONLY:
         return
 
-    c = GCal.GCal(CALENDAR)
+    c = GCal.GCal(CALENDAR, DAYS_TO_READ)
     # c.print_events()
 
     for d in workday:
