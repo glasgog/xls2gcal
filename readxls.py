@@ -1,234 +1,101 @@
-"""
-xls2gcal get a work shift from an excel file and add it to a given google calendar
-Copyright (C) 2017  Ilario Digiacomo
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 
 import string
 from xlrd import open_workbook, xldate_as_tuple, XL_CELL_DATE  # excel reading
-from datetime import datetime, time, timedelta
-import pytz  # timezone definitions
-import GCal
-
-# excel structure. NOTE: row_num is excel_rownum-1
-FILE_NAME = "turni.xlsx"
-XLS_SHEET = 1
-# some dates are bugged in the used excel file,
-# so i hack starting from the 1st useful row for that worker.
-XLS_FIRST_ROW = 119
-XLS_DATE = "C"  # column where date is
-XLS_WORKER = "AC"  # column where the worker is
-# year in the used excel file is wrong! excel_year=real_year-1
-# use 0 if no error in your file
-HARDCODE_YEAR_ERROR = -1
-
-# shift duration [hour] and calendar name
-SHIFT_DURATION = 9
-CALENDAR = "test"
-# number of days to handle when post-debugging phase. Use 0 for no limit
-DAYS_TO_READ = 60
-
-DEBUG_EXCEL_ONLY = False
-DEBUG_OFFLINE = False
+from datetime import datetime
 
 
-def month_num(month_str):
-    month = {"gen": 1,
-             "feb": 2,
-             "mar": 3,
-             "apr": 4,
-             "mag": 5,
-             "giu": 6,
-             "lug": 7,
-             "ago": 8,
-             "set": 9,
-             "ott": 10,
-             "nov": 11,
-             "dic": 12}
-    return month[month_str]
+# def col2num(col):
+# 	"""
+# 	Convert excel column id in a col numeric index
+# 	Input: col = "AB"
+# 	"""
+# 	num = 0
+# 	for c in col:
+# 		if c in string.ascii_letters:
+# 			num = num * 26 + (ord(c.upper()) - ord('A')) + 1
+# 	return num - 1
 
 
-def shift_name(shift):
-    name = {"G": "Giorno",
-            "M": "Mattina",
-            "P": "Pomeriggio",
-            "N": "Notte"}
-    if shift not in name:
-        return
-    return name[shift]
+# def row2num(row):
+# 	"""
+# 	Convert excel column id in a row numeric index
+# 	Work for sheet number too
+# 	"""
+# 	return row - 1
+
+# # Define a sheet convertion number function
+# sheet2num = row2num
 
 
-def shift_time(shift):
-    hour = {"G": time(9, 0),
-            "M": time(6, 0),
-            "P": time(14, 0),
-            "N": time(22, 0)}
-    return hour[shift]
+class readxls:
 
+	workday = {}  # dictionary of the working day: workday["date"]="shift"
 
-def col2num(col):
-    """
-    Convert excel column id in a col numeric index
-    Input: col = "AB"
-    """
-    num = 0
-    for c in col:
-        if c in string.ascii_letters:
-            num = num * 26 + (ord(c.upper()) - ord('A')) + 1
-    return num - 1
+	def __init__(self, file_name, xls_first_row, xls_date_col, xls_worker_col, xls_sheet_num, days_to_read, hardcode_year_error=0):
+		"""
+		Arguments define excel structure
+		file_name: name of excel file
+		xls_first_row: first useful xls row, because some dates are bugged in the used excel file
+		xls_date_col: number of col where the date is
+		xls_worker_col: number of col where the worker is
+		xls_sheet_num: number of the sheet that you want to use
+		days_to_read: day to read from the actual date
+		hardcode_year_error: if year in the used excel file is wrong, pass the offset (ex -1 if excel_year=2016 but real_year=2017)
+		"""
+		first_row_index = self.row2num(xls_first_row)
+		date_index = self.col2num(xls_date_col)
+		worker_index = self.col2num(xls_worker_col)
+		sheet_index = self.sheet2num(xls_sheet_num)
 
+		wb = open_workbook(file_name)
+		sheet = wb.sheet_by_index(sheet_index)
 
-def row2num(row):
-    """
-    Convert excel column id in a row numeric index
-    Work for sheet number too
-    """
-    return row - 1
+		# workday = {}
+		days_count = days_to_read
+		for row in xrange(first_row_index, sheet.nrows):
+			# check if is a date
+			if sheet.cell_type(row, date_index) == XL_CELL_DATE:
+				# date in excel are stored as floating point numbers
+				date_raw = sheet.cell_value(row, date_index)
+				# convert it in tuple
+				date_tuple = xldate_as_tuple(date_raw, wb.datemode)
+				dt = datetime(*date_tuple)
+				# fix an error in the year of excel file
+				dt = dt.replace(year=dt.year - hardcode_year_error)
 
-# Assign a function
-sheet2num = row2num
+				if dt.date() < datetime.today().date():
+					# print str(dt) + " is past."
+					continue
 
+				self.workday[dt] = sheet.cell(row, worker_index).value
+				print str(dt) + " is " + str(self.workday[dt])
 
-def main():
-    first_row_index = row2num(XLS_FIRST_ROW)
-    date_index = col2num(XLS_DATE)
-    worker_index = col2num(XLS_WORKER)
-    sheet_index = sheet2num(XLS_SHEET)
+				if days_to_read:
+					days_count -= 1
+					if days_count <= 0:
+						break
+		return
 
-    wb = open_workbook(FILE_NAME)
-    sheet = wb.sheet_by_index(sheet_index)
+	def get_workday(self):
+		return self.workday
 
-    # fill a dictionary. NOTE: key can be a datetime, not needed to be a str
-    # workday = {datetime: "G",
-    #            ...,
-    #            dt: "shift", ...}
-    # i can access a shift with workday[dt]
-    workday = {}
-    days_count = DAYS_TO_READ
-    for row in xrange(first_row_index, sheet.nrows):
-        # check if is a date
-        if sheet.cell_type(row, date_index) == XL_CELL_DATE:
-            # date in excel are stored as floating point numbers
-            date_raw = sheet.cell_value(row, date_index)
-            # print date_raw
-            # convert it in tuple
-            date_tuple = xldate_as_tuple(date_raw, wb.datemode)
-            dt = datetime(*date_tuple)
-            # fix an error in the year of excel file
-            dt = dt.replace(year=dt.year - HARDCODE_YEAR_ERROR)
+	def col2num(self, col):
+		"""
+		Convert excel column id in a col numeric index
+		Input: col = "AB"
+		"""
+		num = 0
+		for c in col:
+			if c in string.ascii_letters:
+				num = num * 26 + (ord(c.upper()) - ord('A')) + 1
+		return num - 1
 
-            if dt.date() < datetime.today().date():
-                # print str(dt) + " is past."
-                continue
+	def row2num(self, row):
+		"""
+		Convert excel column id in a row numeric index
+		Work for sheet number too
+		"""
+		return row - 1
 
-            workday[dt] = sheet.cell(row, worker_index).value
-            print str(dt) + " is " + str(workday[dt])
-
-            if DAYS_TO_READ:
-                days_count -= 1
-                if days_count <= 0:
-                    break
-    if DEBUG_EXCEL_ONLY:
-        return
-
-    c = GCal.GCal(CALENDAR, DAYS_TO_READ)
-    # c.print_events()
-
-    for d in workday:
-        if d.date() < datetime.today().date():
-            continue  # just redundant
-
-        shift = shift_name(workday[d])  # remember: d is the key
-
-        if shift:
-            # get the full date, with the shift start time
-            dt = datetime.combine(d, shift_time(workday[d]))
-            # print dt.strftime("%d/%m/%Y %H:%M") + ": " + shift
-            # I need UTC date
-            local = pytz.timezone("Europe/Rome")
-            local_dt = local.localize(dt, is_dst=None)
-            # print " Local datatime: " + str(local_dt)
-            # utc_dt = local_dt.astimezone(pytz.utc) # NOTE: local_dt==utc_dt
-            # format needed for google api: 2017-05-08T09:00:00+02:00 # utc_string
-            # = local_dt.isoformat('T')
-            if DEBUG_OFFLINE:
-                continue
-
-            # try to update. if fail, add a new event
-            updated = c.update_event(local_dt, shift, local_dt,
-                                  local_dt + timedelta(hours=SHIFT_DURATION))
-            if not updated:
-                c.add_event(shift, local_dt, local_dt +
-                            timedelta(hours=SHIFT_DURATION))
-            print
-        else:
-            dt = datetime.combine(d, time(0, 0))
-            # print dt.strftime("%d/%m/%Y %H:%M") + ": Riposo"
-            # I need UTC date
-            local = pytz.timezone("Europe/Rome")
-            local_dt = local.localize(dt, is_dst=None)
-            # print " Local datatime: " + str(local_dt)
-            if DEBUG_OFFLINE:
-                continue
-
-            c.delete_event(local_dt)
-            print
-
-
-""" Unused functions """
-
-
-def localize(date_time):
-    import pytz
-    local = pytz.timezone("Europe/Rome")
-    local_dt = local.localize(date_time, is_dst=None)
-    return local_dt
-
-
-def gdate(date_time):
-    # convert to google api format
-    local_dt = localize(date_time)
-    return local_dt.isoformat('T')
-
-
-def un_gdate(gdate):
-    # convert from google api format
-    import dateutil.parser
-    dt = dateutil.parser.parse(gdate)
-    return dt
-
-#-----------------------------------
-#
-# from xlrd import open_workbook
-# wb = open_workbook('esempio.xlsx')
-# for s in wb.sheets():
-#     #print 'Sheet:',s.name
-#     values = []
-#     for row in range(s.nrows):
-#         col_value = []
-#         for col in range(s.ncols):
-#             value  = (s.cell(row,col).value)
-#             try : value = str(int(value))
-#             except : pass
-#             col_value.append(value)
-#         values.append(col_value)
-# print values
-# for row in values:
-#   print str(row[0]) + " -> " + str(row[1])
-#
-#-----------------------------------
-
-if __name__ == '__main__':
-    main()
+	# Define a sheet convertion number function
+	sheet2num = row2num
