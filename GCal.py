@@ -74,16 +74,15 @@ def get_credentials():
 
 
 class GCal:
-    # scelgo il nome del calendario che mi interessa (NOTA: case ensitive)
-    # da rimuovere quando verra' implementata la possibilita' di creare un
-    # nuovo calendario
-    CALENDAR = "test"
-    MAX_RESULTS = 60  # 365
+    # TODO: creazione nuovo calendario se non esistente
+    CALENDAR = "test" # nome del calendario su cui aggiungere gli eventi (case sensitive)
+    MAX_RESULTS = 60  # numero di eventi da considerare
 
     credentials = None
     service = None
     calendar_id = None
     events_to_read = None
+    events = None
 
     def __init__(self, calendar_name=CALENDAR, events_to_read=MAX_RESULTS):
         """Shows basic usage of the Google Calendar API.
@@ -102,8 +101,7 @@ class GCal:
         while True:
             calendar_list = self.service.calendarList().list(pageToken=page_token).execute()
             for calendar_list_entry in calendar_list['items']:
-                print("-", calendar_list_entry['summary'],
-                      "->", calendar_list_entry['id'])
+                # print("-", calendar_list_entry['summary'], "->", calendar_list_entry['id'])
                 # Cerco l'id di calendar_name
                 if calendar_list_entry['summary'] == calendar_name:
                     self.calendar_id = calendar_list_entry['id']
@@ -120,6 +118,8 @@ class GCal:
         # al piu' verranno letti eventi oltre il giorno di interesse
         self.events_to_read = events_to_read
         print()
+        self.events = self.get_events()
+
 
     def get_events(self):
         """ Get event list """
@@ -139,13 +139,12 @@ class GCal:
             OUTPUT: False if not found, True or event object
                 in the other case
         """
-        events = self.get_events()
+        events = self.events
         if not events:
             print('  No upcoming events found.')
         for event in events:
             start = event['start'].get('dateTime', event['start'].get('date'))
             # print("-", start, event['summary'])
-
             # convert from google api format
             start_dt = dateutil.parser.parse(start)
             if start_dt.date() == date.date():
@@ -198,6 +197,7 @@ class GCal:
             INPUT: date, event new name and datetime
             OUTPUT: True if event is updated, False if no event on that date
         """
+        # TODO: evitare di effettuare l'update se l'evento presente e' gia' identico a quello da inserire
         if type(new_start) == datetime and type(new_end) == datetime:
             new_start = new_start.isoformat('T')
             new_end = new_end.isoformat('T')
@@ -227,7 +227,7 @@ class GCal:
         return False
 
     def print_events(self):
-        events = self.get_events()
+        events = self.events
         if not events:
             print('No upcoming events found.')
         for event in events:

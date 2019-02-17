@@ -1,0 +1,77 @@
+=== Migliorie ===
+
+Parse config
+
+Nome/url xls come argomento
+
+Estrarre serate libere
+
+Bug report se più eventi si sovrappongono nello stesso giorno (da controllare):
+Nella giornata in esame l'evento veniva aggiunto a prescindere (non leggeva se c'erano già stati eventi).
+Es. M sostituito con G, alle 20:00 provando ad aggiornare si ottenevano i 2 eventi G ed M.
+Da provare se la sostituzione avviene invece quando il turno non è iniziato.
+In ogni caso non ha senso inserire un nuovo turno alla data attuale se l'ora della sua conclusione è già passata, quindi non inserire turni nella data attuale se il loro orario è già terminato.
+Verificare inoltre se il turno viene letto da GCal quando è iniziato ma non ancora terminato.
+
+
+=== File XLS ===
+
+Il file xls deve essere preventivamente controllato.
+Questo dovrebbe essere fatto o prima dello script,
+oppure in readxls.py, ma subito dopo la lettura
+e prima dell'elaborazione.
+Eventulmente creare una funzione ad hoc check_xls
+
+Il download del file può essere fatto direttamente
+all'interno dello script
+
+Aggiungere controllo nel caso il file non venga scaricato
+
+
+
+=== Check secondari ===
+
+Controllare che i vari .py siano tutti python 3.x
+
+Controllo dei dati in input
+
+Evitare di fare event_update quando il nome, la data e l'ora degli eventi già inseriti è uguale a quella degli eventi da inserire.
+Stampare Event updated solo se l'update viene effettivamente fatto.
+
+Isoformat deve essere compito di gcal class, mentre local o utc è compito dell'applicazione.
+Allo stesso modo, gli event devono rimanere all'interno della classe GCal.
+
+
+=== Migliorie da valutare ===
+
+Il calendario utilizzato dall'app dovrebbe essere unicamente utilizzato per i turni, e non condiviso con altro.
+In ottica di enhancement si può pensare di aggiungere uno specifico tag in qualche campo dell'evento gcal,
+in modo da evitare cancellazioni di eventi non attinenti.
+Metodi come "update_event" infatti agiscono controllando solo la data dell'evento:
+sarebbe in quel caso necessario controllare anche il tag (nome non basta)
+
+Gestire eventi con json
+
+Verificare possibilità di integrare funzione shift_name e shift_time
+# class W:
+# 	work = {"G": ["Giorno","ora"],...}
+#	def name(self,s):
+#		return self.work[s][0]
+#	def time(self,s):
+#		return self.work[s][1]
+# w=W()
+# w.name("G")
+# w.time("G")
+
+In GCal
+# if not events: print..
+# for event in events: ...
+potrebbe essere sostituito da for - else
+
+Tutti i metodi di GCal che operano sugli eventi, ad eccezione del costruttore ed al momento anche di add_event,
+restituiscono true nel caso vadano a buon fine, false altrimenti.
+Es. delete_event restituisce false quando richiesta per un free day su un giorno già contrassegnato come libero,
+perché nessuna operazione viene effettivamente eseguita.
+
+Impostare # giorni da leggere pari a # eventi da leggere.
+Nota che # giorni = N, # eventi <= N. In un intervallo di N giorni non possono esserci più di N eventi. Al più verranno letti eventi oltre il giorno di interesse.

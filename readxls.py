@@ -31,7 +31,7 @@ class readxls:
 
 	workday = {}  # dictionary of the working day: workday["date"]="shift"
 
-	def __init__(self, file_name, xls_first_row, xls_date_col, xls_worker_col, xls_sheet_num, days_to_read, hardcode_year_error=0):
+	def __init__(self, file_name, xls_first_row, xls_date_col, xls_worker_col, xls_sheet_num, days_to_read):
 		"""
 		Arguments define excel structure
 		file_name: name of excel file
@@ -40,7 +40,6 @@ class readxls:
 		xls_worker_col: number of col where the worker is
 		xls_sheet_num: number of the sheet that you want to use
 		days_to_read: day to read from the actual date
-		hardcode_year_error: if year in the used excel file is wrong, pass the offset (ex -1 if excel_year=2016 but real_year=2017)
 		"""
 		first_row_index = self.row2num(xls_first_row)
 		date_index = self.col2num(xls_date_col)
@@ -61,7 +60,7 @@ class readxls:
 				date_tuple = xldate_as_tuple(date_raw, wb.datemode)
 				dt = datetime(*date_tuple)
 				# fix an error in the year of excel file
-				dt = dt.replace(year=dt.year - hardcode_year_error)
+				# dt = dt.replace(year=dt.year - year_error)
 
 				if dt.date() < datetime.today().date():
 					# print str(dt) + " is past."

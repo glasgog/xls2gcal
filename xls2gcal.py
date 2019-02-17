@@ -17,32 +17,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 # import string
-# from xlrd import open_workbook, xldate_as_tuple, XL_CELL_DATE  # excel reading
+# from xlrd import open_workbook, xldate_as_tuple, XL_CELL_DATE  # excel
+# reading
 from datetime import datetime, time, timedelta
 import pytz  # timezone definitions
 import readxls
 import GCal
 
 # excel structure. NOTE: row_num is excel_rownum-1
-FILE_NAME = "turni.xlsx"
-XLS_SHEET = 1
-# some dates are bugged in the used excel file,
-# so i hack starting from the 1st useful row for that worker.
-XLS_FIRST_ROW = 119
+FILE_NAME = "Turni.xlsx"  # Excel only. ODS not supported
+XLS_SHEET = 1  # sheet where the shift are. Start from 1.
+XLS_FIRST_ROW = 6  # row where dates start
 XLS_DATE = "C"  # column where date is
-XLS_WORKER = "AC"  # column where the worker is
-# year in the used excel file is wrong! excel_year=real_year-1
-# use 0 if no error in your file
-HARDCODE_YEAR_ERROR = -1
+XLS_WORKER = "T"  # column where the worker is
 
 # shift duration [hour] and calendar name
 SHIFT_DURATION = 9
-CALENDAR = "test"
-# number of days to handle when post-debugging phase. Use 0 for no limit
+CALENDAR = "Turni"
+# number of days to handle. Use 0 for no limit
 DAYS_TO_READ = 60
 
-DEBUG_EXCEL_ONLY = False
-DEBUG_OFFLINE = False
+DEBUG_EXCEL_ONLY = False  # debug readxls methods only
+DEBUG_READ_ONLY = False  # debug without modify online calendar
 
 """
 def month_num(month_str):
@@ -80,21 +76,54 @@ def shift_time(shift):
     return hour[shift]
 
 
+# FILE_URL = "xls_url"
+# def download_xls(FILE_URL, FILE_NAME):
+# 	# Backup and download of xls shift file
+# 	# (url in FILE_URL text file)
+#     import os
+
+#     print("Backup e scaricamento nuovo file dei turni in corso..")
+#     bash_command = "mv \"" + FILE_NAME + "\" \"" + FILE_NAME + ".`date +%y%m%d-%H%M%S`.xlsx.bak\""
+#     os.system(bash_command)
+#     bash_command = "wget -nv -i \"" + FILE_URL + "\" -O \"" + FILE_NAME + "\""
+#     error = os.system(bash_command) # 0 if not error
+#     print("")
+#     return bool(error)
+
+
 def main():
-    xls = readxls.readxls(FILE_NAME, XLS_FIRST_ROW, XLS_DATE, XLS_WORKER, XLS_SHEET, DAYS_TO_READ, HARDCODE_YEAR_ERROR)
+    # err = download_xls(FILE_URL, "Turni.xlsx")
+    # if err:
+    # 	return
+
+    try:
+    	xls = readxls.readxls(FILE_NAME, XLS_FIRST_ROW, XLS_DATE, XLS_WORKER, XLS_SHEET, DAYS_TO_READ)
+    except:
+    	print("Nessun file dei turni presente")
+        return
     workday = xls.get_workday()
+    if workday == {}:
+        print("Nessun evento presente. Controllare il file dei turni")
+        return
     if DEBUG_EXCEL_ONLY:
         return
 
-    c = GCal.GCal(CALENDAR, DAYS_TO_READ)
-    # c.print_events()
+    try:
+    	c = GCal.GCal(CALENDAR, DAYS_TO_READ)
+    	# c.print_events()
+    	print("")
+    except:
+    	print("")
+    	print("Errore caricamento calendario. Controllare la connessione ad Internet")
+    	print("")
+    	if not DEBUG_READ_ONLY:   		
+			return
 
     for d in workday:
         if d.date() < datetime.today().date():
             continue  # just redundant
 
         shift = shift_name(workday[d])  # remember: d is the key
-
         if shift:
             # get the full date, with the shift start time
             dt = datetime.combine(d, shift_time(workday[d]))
@@ -106,7 +135,7 @@ def main():
             # utc_dt = local_dt.astimezone(pytz.utc) # NOTE: local_dt==utc_dt
             # format needed for google api: 2017-05-08T09:00:00+02:00 # utc_string
             # = local_dt.isoformat('T')
-            if DEBUG_OFFLINE:
+            if DEBUG_READ_ONLY:
                 continue
 
             # try to update. if fail, add a new event
@@ -115,7 +144,7 @@ def main():
             if not updated:
                 c.add_event(shift, local_dt, local_dt +
                             timedelta(hours=SHIFT_DURATION))
-            print
+            print("")
         else:
             dt = datetime.combine(d, time(0, 0))
             # print dt.strftime("%d/%m/%Y %H:%M") + ": Riposo"
@@ -123,11 +152,11 @@ def main():
             local = pytz.timezone("Europe/Rome")
             local_dt = local.localize(dt, is_dst=None)
             # print " Local datatime: " + str(local_dt)
-            if DEBUG_OFFLINE:
+            if DEBUG_READ_ONLY:
                 continue
-
-            c.delete_event(local_dt)
-            print
+            if c.delete_event(local_dt):
+                print("")
+    return
 
 
 """ Unused functions """
