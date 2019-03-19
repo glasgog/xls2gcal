@@ -51,7 +51,7 @@ class readxls:
 
 		# workday = {}
 		days_count = days_to_read
-		for row in xrange(first_row_index, sheet.nrows):
+		for row in range(first_row_index, sheet.nrows):
 			# check if is a date
 			if sheet.cell_type(row, date_index) == XL_CELL_DATE:
 				# date in excel are stored as floating point numbers
@@ -67,7 +67,7 @@ class readxls:
 					continue
 
 				self.workday[dt] = sheet.cell(row, worker_index).value
-				print str(dt) + " is " + str(self.workday[dt])
+				print (str(dt), " is ", str(self.workday[dt]))
 
 				if days_to_read:
 					days_count -= 1

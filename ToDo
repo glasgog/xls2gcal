@@ -1,8 +1,10 @@
+=== Update ===
+
+Aggiornare GCal, alcune librerie delle Google API sono state deprecate.
+
 === Migliorie ===
 
-Parse config
-
-Nome/url xls come argomento
+Inserire parametri di configurazione come file esterno (ini o json)
 
 Estrarre serate libere
 
