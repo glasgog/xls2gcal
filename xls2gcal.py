@@ -21,21 +21,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # reading
 from datetime import datetime, time, timedelta
 import pytz  # timezone definitions
+import configparser # read ini
 import lib.readxls as readxls
 import lib.GCal as GCal
 
+CONF_FILE = "data/conf.ini"
+
 # excel structure. NOTE: row_num is excel_rownum-1
-FILE_NAME = "Turni.xlsx"  # Excel only. ODS not supported
-XLS_SHEET = 1  # sheet where the shift are. Start from 1.
-XLS_FIRST_ROW = 6  # row where dates start
-XLS_DATE = "C"  # column where date is
-XLS_WORKER = "Z"  # column where the worker is
+FILE_NAME = "data/Turni.xlsx"  # Excel only. ODS not supported
+# XLS_SHEET = 1  # sheet where the shift are. Start from 1.
+# XLS_FIRST_ROW = 6  # row where dates start
+# XLS_DATE = "C"  # column where date is
+# XLS_WORKER = "Z"  # column where the worker is
 
 # shift duration [hour] and calendar name
 SHIFT_DURATION = 9
-CALENDAR = "Turni"
+# CALENDAR = "Turni"
 # number of days to handle. Use 0 for no limit (not tested)
-DAYS_TO_READ = 60
+# DAYS_TO_READ = 60
 
 DEBUG_EXCEL_ONLY = False  # debug readxls methods only
 DEBUG_READ_ONLY = False  # debug without modify online calendar
@@ -96,6 +99,20 @@ def main():
 	# if download_err:
 	# 	return
 
+	config = configparser.ConfigParser()
+	try:
+		config.read(CONF_FILE)
+		XLS_SHEET = int(config["EXCEL"]["sheet_number"])
+		XLS_FIRST_ROW = int(config["EXCEL"]["first_useful_row"])
+		XLS_DATE = config["EXCEL"]["date_column"]
+		XLS_WORKER = config["EXCEL"]["worker_column"]
+		CALENDAR = config["CALENDAR"]["calendar_name"]
+		DAYS_TO_READ = int(config["CALENDAR"]["days_to_read"])
+	except:
+		print("Errore nella lettura del file di configurazione.")
+		print("Verificare il file", CONF_FILE)
+		return
+
 	try:
 		xls = readxls.readxls(FILE_NAME, XLS_FIRST_ROW, XLS_DATE, XLS_WORKER, XLS_SHEET, DAYS_TO_READ)
 	except:
@@ -107,14 +124,15 @@ def main():
 		return
 	if DEBUG_EXCEL_ONLY:
 		return
-		
+
 	try:
 		c = GCal.GCal(CALENDAR, DAYS_TO_READ)
 		# c.print_events()
 		print("")
 	except:
 		print("")
-		print("Errore caricamento calendario. Controllare la connessione ad Internet")
+		print("Errore caricamento calendario.")
+		print("Controllare la connessione ad Internet o le credenziali fornite.")
 		print("")
 		if not DEBUG_READ_ONLY:
 		   return

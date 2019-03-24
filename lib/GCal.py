@@ -40,7 +40,7 @@ except ImportError:
 # SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
 # NOTE: scope modified because i want to write too
 SCOPES = 'https://www.googleapis.com/auth/calendar'
-CLIENT_SECRET_FILE = 'client_secret.json'
+CLIENT_SECRET_FILE = 'data/client_secret.json'
 APPLICATION_NAME = 'xls2gcal'
 
 

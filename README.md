@@ -17,4 +17,23 @@ Note: if you have both python 2.x and 3.x, use:
 sudo python3 -m pip install libraries_list
 ...
 
-See [Google Calendar API Python Quickstart](https://developers.google.com/calendar/quickstart/python) for more information.
+Follow the intruction at [Google Calendar API Python Quickstart](https://developers.google.com/calendar/quickstart/python), and save the client configuraton credential file in the project folter at data/client_secret.json.
+
+Some prior configuration files are needed:
+* **xls.url**, simply containing the url of the xlsx file
+* **conf.ini**, containing some configuration about excel structure and calendar.
+
+conf.ini have the following structure:
+...
+[EXCEL]
+sheet_number = 1
+first_useful_row = 4
+date_column = C
+worker_column = AD
+
+[CALENDAR]
+calendar_name = Shift
+days_to_read = 60
+...
+
+U can find further examples in example.xlsx, example_conf.ini and example_xls.link under data/example folder.

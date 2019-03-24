@@ -4,7 +4,8 @@ Aggiornare GCal, alcune librerie delle Google API sono state deprecate.
 
 === Migliorie ===
 
-Inserire parametri di configurazione come file esterno (ini o json)
+Sistemare variabili hardcoded in GCal
+aggiungere --help per illustrare come compilare il file ini e aggiungere tool --makeconf per creazione guidata file ini o a creazone file ini vuoto
 
 Estrarre serate libere
 
