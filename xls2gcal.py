@@ -22,8 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from datetime import datetime, time, timedelta
 import pytz  # timezone definitions
 import configparser # read ini
-import lib.readxls as readxls
-import lib.GCal as GCal
+import pkg.readxls as readxls
+import pkg.GCal as GCal
 
 CONF_FILE = "data/conf.ini"
 

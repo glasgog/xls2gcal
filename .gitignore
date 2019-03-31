@@ -1,5 +1,5 @@
 *.pyc
 client_secret.json
-xls.link
+xls.url
 conf.ini
 Turni*.xlsx*
